@@ -1,17 +1,26 @@
-from transformers import pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
-# Load pre-trained chatbot model
-chatbot = pipeline("text-generation", model="gpt2")
+# Load a pre-trained chat model (DialoGPT)
+model_name = "microsoft/DialoGPT-medium"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
 
 def chatbot_response(user_input):
-    response = chatbot(
-        user_input,
-        max_length=50, 
-        num_return_sequences=1,
-        truncation = True, # explicitly exnable truncation
-        pad_token_id = 50256 # avoid unnecessary padding warnings
-        )
-    return response[0]['generated_text']
+    # Encode input text and generate a response
+    input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt")
+    
+    # Generate a response with controlled randomness
+    output_ids = model.generate(
+        input_ids,
+        max_length=100,
+        temperature=0.7,  # Lower temperature for more focused responses
+        top_k=50,  # Avoids random outputs
+        pad_token_id=tokenizer.eos_token_id
+    )
+    
+    response = tokenizer.decode(output_ids[:, input_ids.shape[-1]:][0], skip_special_tokens=True)
+    return response
 
 # Simple test loop
 if __name__ == "__main__":
