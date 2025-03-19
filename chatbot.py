@@ -1,33 +1,36 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
+import openai
+import os
+from dotenv import load_dotenv
 
-# Load a pre-trained chat model (DialoGPT)
-model_name = "microsoft/DialoGPT-medium"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
+# Load environment variables from .env file
+load_dotenv()
 
-def chatbot_response(user_input):
-    # Encode input text and generate a response
-    input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt")
-    
-    # Generate a response with controlled randomness
-    output_ids = model.generate(
-        input_ids,
-        max_length=100,
-        temperature=0.7,  # Lower temperature for more focused responses
-        top_k=50,  # Avoids random outputs
-        pad_token_id=tokenizer.eos_token_id
-    )
-    
-    response = tokenizer.decode(output_ids[:, input_ids.shape[-1]:][0], skip_special_tokens=True)
-    return response
-
-# Simple test loop
-if __name__ == "__main__":
+def chat_with_gpt():
     print("AI Chatbot is running! Type 'exit' to stop.")
+    
+    # Fetch API key from environment variables
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("Error: OPENAI_API_KEY not found. Make sure it's set in the .env file.")
+        return
+    
+    client = openai.OpenAI(api_key=api_key)
+    
     while True:
         user_input = input("You: ")
         if user_input.lower() == "exit":
             print("Chatbot: Goodbye!")
             break
-        print("Chatbot:", chatbot_response(user_input))
+        
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": user_input}]
+            )
+            bot_reply = response.choices[0].message.content
+            print(f"Chatbot: {bot_reply}")
+        except Exception as e:
+            print(f"Error: {e}")
+
+if __name__ == "__main__":
+    chat_with_gpt()
