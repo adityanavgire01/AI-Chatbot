@@ -1,16 +1,21 @@
-def chatbot_response(user_input):
-    responses = {
-        "hello": "Hi there! How can I help you?",
-        "how are you": "I'm just a bot, but I'm doing great! How about you?",
-        "bye": "Goodbye! Have a great day!",
-    }
+from transformers import pipeline
 
-    user_input = user_input.lower()
-    return responses.get(user_input, "I'm sorry, I don't understand.")
+# Load pre-trained chatbot model
+chatbot = pipeline("text-generation", model="gpt2")
+
+def chatbot_response(user_input):
+    response = chatbot(
+        user_input,
+        max_length=50, 
+        num_return_sequences=1,
+        truncation = True, # explicitly exnable truncation
+        pad_token_id = 50256 # avoid unnecessary padding warnings
+        )
+    return response[0]['generated_text']
 
 # Simple test loop
 if __name__ == "__main__":
-    print("Chatbot is running! Type 'exit' to stop.")
+    print("AI Chatbot is running! Type 'exit' to stop.")
     while True:
         user_input = input("You: ")
         if user_input.lower() == "exit":
